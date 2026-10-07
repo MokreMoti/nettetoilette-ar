@@ -8,15 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.7/aframe/build/aframe-ar.min.js"></script>
 <style>
 html,body{margin:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:transparent!important}
-#arjs-video,video{
- position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;
- object-fit:cover!important;display:block!important;visibility:visible!important;opacity:1!important;
- z-index:0!important;background:transparent!important
-}
-a-scene,.a-canvas,canvas{
- position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;
- z-index:1!important;background:transparent!important
-}
+#arjs-video,video{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;object-fit:cover!important;display:block!important;visibility:visible!important;opacity:1!important;z-index:0!important;background:transparent!important}
+a-scene,.a-canvas,canvas{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:1!important;background:transparent!important}
 </style>
 </head>
 <body>
@@ -24,22 +17,30 @@ a-scene,.a-canvas,canvas{
  renderer="alpha:true;antialias:true;colorManagement:true"
  arjs="sourceType:webcam;debugUIEnabled:false">
  <a-marker preset="hiro">
-  <a-entity gltf-model="url(./nettetoilette.glb)"
-   position="0 0 0" rotation="-90 0 0" scale="0.20 0.20 0.20"></a-entity>
+  <a-entity id="model"
+   gltf-model="url(./nettetoilette.glb)"
+   position="0 0 0"
+   rotation="-90 0 0"
+   scale="0.20 0.20 0.20"></a-entity>
  </a-marker>
  <a-entity camera></a-entity>
 </a-scene>
+
 <script>
 const scene=document.querySelector('a-scene');
+const model=document.querySelector('#model');
+const BASE=0.20;
 
-function fix(){
+function keepCameraWorking(){
  const v=document.querySelector('#arjs-video')||document.querySelector('video');
  if(v){
    v.setAttribute('playsinline','');
    v.setAttribute('webkit-playsinline','');
    Object.assign(v.style,{
-     position:'fixed',top:'0',left:'0',width:'100vw',height:'100vh',
-     objectFit:'cover',display:'block',visibility:'visible',opacity:'1',zIndex:'0'
+     position:'fixed',top:'0',left:'0',
+     width:'100vw',height:'100vh',
+     objectFit:'cover',display:'block',
+     visibility:'visible',opacity:'1',zIndex:'0'
    });
  }
  if(scene && scene.renderer){
@@ -51,11 +52,41 @@ function fix(){
    }
  }
 }
+
+/*
+  Keep the GLB itself uniformly scaled in 3D.
+  Counter only the screen-space aspect distortion introduced by the
+  fullscreen AR canvas.  Portrait needs horizontal compensation;
+  landscape needs vertical compensation.
+*/
+function correctModelAspect(){
+ const w=window.innerWidth;
+ const h=window.innerHeight;
+ if(!w || !h) return;
+
+ if(h >= w){
+   // portrait: screen-space rendering makes the model too tall
+   const k = h / w;
+   model.object3D.scale.set(BASE * k, BASE, BASE);
+ }else{
+   // landscape: screen-space rendering makes the model too wide
+   const k = w / h;
+   model.object3D.scale.set(BASE, BASE * k, BASE);
+ }
+}
+
+function refresh(){
+ keepCameraWorking();
+ correctModelAspect();
+}
+
 scene.addEventListener('renderstart',()=>{
- fix();
- [100,300,700,1500,3000].forEach(ms=>setTimeout(fix,ms));
+ refresh();
+ [100,300,700,1500,3000].forEach(ms=>setTimeout(refresh,ms));
 });
-setInterval(fix,750);
+window.addEventListener('resize',()=>setTimeout(refresh,100));
+window.addEventListener('orientationchange',()=>setTimeout(refresh,300));
+setInterval(refresh,750);
 </script>
 </body>
 </html>
