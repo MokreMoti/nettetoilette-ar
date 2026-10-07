@@ -7,14 +7,17 @@
 <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.7/aframe/build/aframe-ar.min.js"></script>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
-/* Größe von Video und Canvas NICHT erzwingen – das macht AR.js selbst */
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+/* Nur die Reihenfolge festlegen, NICHT die Größe: Video unten, 3D oben */
+#arjs-video,video{z-index:0!important;visibility:visible!important;opacity:1!important}
+a-scene,.a-canvas,canvas{background:transparent!important}
+.a-canvas,canvas{z-index:1!important}
 </style>
 </head>
 <body>
 <a-scene embedded vr-mode-ui="enabled:false"
  renderer="alpha:true;antialias:true;colorManagement:true"
- arjs="sourceType:webcam;debugUIEnabled:false;trackingMethod:best;sourceWidth:1280;sourceHeight:960;displayWidth:1280;displayHeight:960">
+ arjs="sourceType:webcam;debugUIEnabled:false">
  <a-marker preset="hiro">
   <a-entity gltf-model="url(./nettetoilette.glb)"
    position="0 0 0" rotation="-90 0 0" scale="0.20 0.20 0.20"></a-entity>
@@ -28,9 +31,10 @@ scene.addEventListener('renderstart',()=>{
  if(v){
   v.setAttribute('playsinline','');
   v.setAttribute('webkit-playsinline','');
+  v.play&&v.play().catch(()=>{});
  }
  scene.renderer.setClearColor(0x000000,0);
- // nach Orientierungswechsel Größen neu berechnen lassen
+ scene.renderer.setClearAlpha(0);
  window.addEventListener('orientationchange',()=>{
   setTimeout(()=>window.dispatchEvent(new Event('resize')),400);
  });
