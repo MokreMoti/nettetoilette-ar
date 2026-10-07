@@ -7,9 +7,18 @@
 <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.7/aframe/build/aframe-ar.min.js"></script>
 <style>
-html,body{margin:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:transparent!important}
-#arjs-video,video{position:fixed!important;display:block!important;visibility:visible!important;opacity:1!important;z-index:0!important;background:transparent!important}
-a-scene,.a-canvas,canvas{position:fixed!important;z-index:1!important;background:transparent!important}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
+#arjs-video,video,.a-canvas,canvas{
+ position:fixed!important;
+ margin:0!important;
+}
+#arjs-video,video{
+ display:block!important;visibility:visible!important;opacity:1!important;
+ z-index:0!important;background:#000!important;
+}
+a-scene,.a-canvas,canvas{
+ z-index:1!important;background:transparent!important;
+}
 </style>
 </head>
 <body>
@@ -26,56 +35,72 @@ a-scene,.a-canvas,canvas{position:fixed!important;z-index:1!important;background
 <script>
 const scene=document.querySelector('a-scene');
 
-function makeTransparent(){
- if(!scene || !scene.renderer) return;
+function transparent(){
+ if(!scene.renderer)return;
  scene.renderer.setClearColor(0x000000,0);
  scene.renderer.setClearAlpha(0);
- if(scene.renderer.domElement) scene.renderer.domElement.style.background='transparent';
+ scene.renderer.domElement.style.background='transparent';
 }
 
-function syncDisplay(){
- const video=document.querySelector('#arjs-video')||document.querySelector('video');
- const canvas=scene && scene.canvas ? scene.canvas : document.querySelector('canvas');
- if(!video || !canvas || !scene.renderer) return;
+function fitWithoutDistortion(){
+ const v=document.querySelector('#arjs-video')||document.querySelector('video');
+ const c=scene.canvas||document.querySelector('canvas');
+ if(!v||!c||!scene.renderer)return;
 
- video.setAttribute('playsinline','');
- video.setAttribute('webkit-playsinline','');
- Object.assign(video.style,{zIndex:'0',display:'block',visibility:'visible',opacity:'1'});
+ v.setAttribute('playsinline','');
+ v.setAttribute('webkit-playsinline','');
 
- const r=video.getBoundingClientRect();
- if(r.width<=0 || r.height<=0) return;
+ // Use the REAL camera aspect ratio. Never stretch X and Y independently.
+ const vw=v.videoWidth||640, vh=v.videoHeight||480;
+ const cameraAspect=vw/vh;
+ const sw=window.innerWidth, sh=window.innerHeight;
+ const screenAspect=sw/sh;
 
- Object.assign(canvas.style,{
-  position:'fixed',left:r.left+'px',top:r.top+'px',
-  width:r.width+'px',height:r.height+'px',
-  margin:'0',zIndex:'1',background:'transparent'
- });
-
- /* Keep renderer and AR camera projection on the SAME aspect ratio. */
- const dpr=Math.min(window.devicePixelRatio||1,2);
- scene.renderer.setPixelRatio(dpr);
- scene.renderer.setSize(r.width,r.height,false);
-
- const cam=scene.camera;
- if(cam && cam.isPerspectiveCamera){
-   const aspect=r.width/r.height;
-   if(Math.abs(cam.aspect-aspect)>0.0001){
-     cam.aspect=aspect;
-     cam.updateProjectionMatrix();
-   }
+ let w,h,left,top;
+ if(screenAspect>cameraAspect){
+   h=sh; w=h*cameraAspect;
+   left=(sw-w)/2; top=0;
+ }else{
+   w=sw; h=w/cameraAspect;
+   left=0; top=(sh-h)/2;
  }
 
- makeTransparent();
+ for(const el of [v,c]){
+   Object.assign(el.style,{
+     left:left+'px',top:top+'px',
+     width:w+'px',height:h+'px'
+   });
+ }
+ v.style.objectFit='fill'; // safe: box itself has the camera's exact aspect ratio
+ v.style.zIndex='0';
+ c.style.zIndex='1';
+
+ // Renderer gets the same aspect ratio as the real camera.
+ const dpr=Math.min(window.devicePixelRatio||1,2);
+ scene.renderer.setPixelRatio(dpr);
+ scene.renderer.setSize(w,h,false);
+
+ // IMPORTANT: do NOT overwrite AR.js' calibrated projection matrix.
+ transparent();
+}
+
+function refresh(){
+ transparent();
+ fitWithoutDistortion();
 }
 
 scene.addEventListener('renderstart',()=>{
- makeTransparent();
- syncDisplay();
- [100,300,700,1500,3000].forEach(ms=>setTimeout(syncDisplay,ms));
+ refresh();
+ [100,300,700,1500,3000].forEach(ms=>setTimeout(refresh,ms));
 });
-window.addEventListener('resize',()=>setTimeout(syncDisplay,100));
-window.addEventListener('orientationchange',()=>setTimeout(syncDisplay,300));
-setInterval(syncDisplay,500);
+
+document.addEventListener('loadedmetadata',refresh,true);
+window.addEventListener('resize',()=>setTimeout(refresh,100));
+window.addEventListener('orientationchange',()=>{
+ setTimeout(refresh,150);
+ setTimeout(refresh,500);
+});
+setInterval(refresh,750);
 </script>
 </body>
 </html>
