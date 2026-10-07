@@ -19,8 +19,14 @@ a-scene,.a-canvas,canvas{background:transparent!important}
  renderer="alpha:true;antialias:true;colorManagement:true"
  arjs="sourceType:webcam;debugUIEnabled:false">
  <a-marker preset="hiro">
+  <!--
+    Maßstab 1:10 (Modell: 8 m x 10 m -> auf dem Tisch 0,8 m x 1,0 m)
+    Marker: 13,4 cm = 1 Einheit in AR.js
+    scale = (1/10) / 0,134 = 0,746
+    Originalgröße (1:1) wäre: 1 / 0,134 = 7,46
+  -->
   <a-entity gltf-model="url(./nettetoilette.glb)"
-   position="0 0 0" rotation="-90 0 0" scale="0.20 0.20 0.20"></a-entity>
+   position="0 0 0" rotation="-90 0 0" scale="0.746 0.746 0.746"></a-entity>
  </a-marker>
  <a-entity camera></a-entity>
 </a-scene>
