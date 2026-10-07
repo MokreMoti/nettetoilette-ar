@@ -4,118 +4,78 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Nette Toilette AR</title>
-
 <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.7/aframe/build/aframe-ar.min.js"></script>
-
 <style>
-html,body{
-  margin:0!important;
-  width:100%!important;
-  height:100%!important;
-  overflow:hidden!important;
-  background:transparent!important;
-}
-#arjs-video,video{
-  position:fixed!important;
-  display:block!important;
-  visibility:visible!important;
-  opacity:1!important;
-  z-index:0!important;
-  background:transparent!important;
-}
-a-scene,.a-canvas,canvas{
-  position:fixed!important;
-  z-index:1!important;
-  background:transparent!important;
-}
+html,body{margin:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:transparent!important}
+#arjs-video,video{position:fixed!important;display:block!important;visibility:visible!important;opacity:1!important;z-index:0!important;background:transparent!important}
+a-scene,.a-canvas,canvas{position:fixed!important;z-index:1!important;background:transparent!important}
 </style>
 </head>
-
 <body>
-<a-scene
-  embedded
-  vr-mode-ui="enabled:false"
-  renderer="alpha:true; antialias:true; colorManagement:true"
-  arjs="sourceType:webcam; debugUIEnabled:false">
-
-  <a-marker preset="hiro">
-    <a-entity
-      gltf-model="url(./nettetoilette.glb)"
-      position="0 0 0"
-      rotation="-90 0 0"
-      scale="0.20 0.20 0.20">
-    </a-entity>
-  </a-marker>
-
-  <a-entity camera></a-entity>
+<a-scene embedded vr-mode-ui="enabled:false"
+ renderer="alpha:true;antialias:true;colorManagement:true"
+ arjs="sourceType:webcam;debugUIEnabled:false">
+ <a-marker preset="hiro">
+  <a-entity gltf-model="url(./nettetoilette.glb)"
+   position="0 0 0" rotation="-90 0 0" scale="0.20 0.20 0.20"></a-entity>
+ </a-marker>
+ <a-entity camera></a-entity>
 </a-scene>
 
 <script>
-const scene = document.querySelector('a-scene');
+const scene=document.querySelector('a-scene');
 
-function transparentRenderer(){
-  if(!scene || !scene.renderer) return;
-  scene.renderer.setClearColor(0x000000,0);
-  scene.renderer.setClearAlpha(0);
-  if(scene.renderer.domElement){
-    scene.renderer.domElement.style.background='transparent';
-  }
+function makeTransparent(){
+ if(!scene || !scene.renderer) return;
+ scene.renderer.setClearColor(0x000000,0);
+ scene.renderer.setClearAlpha(0);
+ if(scene.renderer.domElement) scene.renderer.domElement.style.background='transparent';
 }
 
-function alignLayers(){
-  const video=document.querySelector('#arjs-video') || document.querySelector('video');
-  const canvas=scene && scene.canvas ? scene.canvas : document.querySelector('canvas');
-  if(!video || !canvas) return;
+function syncDisplay(){
+ const video=document.querySelector('#arjs-video')||document.querySelector('video');
+ const canvas=scene && scene.canvas ? scene.canvas : document.querySelector('canvas');
+ if(!video || !canvas || !scene.renderer) return;
 
-  video.setAttribute('playsinline','');
-  video.setAttribute('webkit-playsinline','');
+ video.setAttribute('playsinline','');
+ video.setAttribute('webkit-playsinline','');
+ Object.assign(video.style,{zIndex:'0',display:'block',visibility:'visible',opacity:'1'});
 
-  /* AR.js decides the camera video's actual displayed rectangle.
-     Read that rectangle and make the WebGL canvas use EXACTLY the same one.
-     Do not independently stretch video/canvas to 100vw x 100vh. */
-  const rect=video.getBoundingClientRect();
+ const r=video.getBoundingClientRect();
+ if(r.width<=0 || r.height<=0) return;
 
-  if(rect.width > 0 && rect.height > 0){
-    Object.assign(canvas.style,{
-      position:'fixed',
-      left:rect.left+'px',
-      top:rect.top+'px',
-      width:rect.width+'px',
-      height:rect.height+'px',
-      margin:'0',
-      zIndex:'1',
-      background:'transparent'
-    });
+ Object.assign(canvas.style,{
+  position:'fixed',left:r.left+'px',top:r.top+'px',
+  width:r.width+'px',height:r.height+'px',
+  margin:'0',zIndex:'1',background:'transparent'
+ });
 
-    /* Match renderer pixel size to the CSS aspect ratio. */
-    const dpr=Math.min(window.devicePixelRatio || 1,2);
-    scene.renderer.setPixelRatio(dpr);
-    scene.renderer.setSize(rect.width,rect.height,false);
-  }
+ /* Keep renderer and AR camera projection on the SAME aspect ratio. */
+ const dpr=Math.min(window.devicePixelRatio||1,2);
+ scene.renderer.setPixelRatio(dpr);
+ scene.renderer.setSize(r.width,r.height,false);
 
-  Object.assign(video.style,{
-    zIndex:'0',
-    display:'block',
-    visibility:'visible',
-    opacity:'1'
-  });
+ const cam=scene.camera;
+ if(cam && cam.isPerspectiveCamera){
+   const aspect=r.width/r.height;
+   if(Math.abs(cam.aspect-aspect)>0.0001){
+     cam.aspect=aspect;
+     cam.updateProjectionMatrix();
+   }
+ }
 
-  transparentRenderer();
+ makeTransparent();
 }
 
 scene.addEventListener('renderstart',()=>{
-  transparentRenderer();
-  alignLayers();
-  [100,300,700,1500,3000].forEach(ms=>setTimeout(alignLayers,ms));
+ makeTransparent();
+ syncDisplay();
+ [100,300,700,1500,3000].forEach(ms=>setTimeout(syncDisplay,ms));
 });
-
-window.addEventListener('resize',()=>setTimeout(alignLayers,100));
-window.addEventListener('orientationchange',()=>setTimeout(alignLayers,300));
-
-/* Recheck at a modest interval: enough for Safari layout changes,
-   without rewriting layout on every animation frame. */
-setInterval(alignLayers,500);
+window.addEventListener('resize',()=>setTimeout(syncDisplay,100));
+window.addEventListener('orientationchange',()=>setTimeout(syncDisplay,300));
+setInterval(syncDisplay,500);
 </script>
 </body>
 </html>
