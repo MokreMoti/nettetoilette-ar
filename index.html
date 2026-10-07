@@ -1,50 +1,19 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Nette Toilette AR</title>
-
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     html, body {
-      margin: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      overflow: hidden !important;
-      background: #000 !important;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: black;
       font-family: Arial, sans-serif;
-    }
-
-    /* MindAR erzeugt sein Kamera-Video dynamisch.
-       Auf iOS erzwingen wir Vollbild + Sichtbarkeit. */
-    video {
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      object-fit: cover !important;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      z-index: 0 !important;
-      background: #000 !important;
-    }
-
-    a-scene,
-    .a-canvas {
-      position: fixed !important;
-      inset: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    .a-canvas {
-      z-index: 1 !important;
-      background: transparent !important;
     }
 
     #startScreen {
@@ -55,60 +24,50 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      padding: 25px;
       box-sizing: border-box;
-      padding: 24px;
-      text-align: center;
-      color: #fff;
       background: #111;
+      color: white;
+      text-align: center;
     }
 
-    #startScreen h1 {
-      margin: 0 0 14px;
-      font-size: 30px;
-    }
-
-    #startScreen p {
-      max-width: 520px;
-      margin: 7px 0;
-      line-height: 1.45;
-    }
+    #startScreen h1 { margin-bottom: 10px; }
+    #startScreen p { max-width: 500px; line-height: 1.5; }
 
     #startButton {
-      margin-top: 18px;
-      padding: 14px 25px;
-      border: 0;
+      margin-top: 15px;
+      padding: 15px 25px;
+      border: none;
       border-radius: 12px;
-      background: #fff;
-      color: #111;
+      background: white;
+      color: black;
       font-size: 18px;
       font-weight: bold;
     }
 
     #status {
       position: fixed;
-      z-index: 9999;
       left: 50%;
-      bottom: calc(22px + env(safe-area-inset-bottom));
+      bottom: 25px;
       transform: translateX(-50%);
-      max-width: calc(100vw - 32px);
-      padding: 10px 15px;
+      z-index: 9999;
+      display: none;
+      padding: 10px 16px;
       border-radius: 20px;
-      background: rgba(0,0,0,.72);
-      color: #fff;
+      background: rgba(0,0,0,0.7);
+      color: white;
       text-align: center;
       font-size: 14px;
-      display: none;
+      max-width: 90%;
     }
 
     #error {
       display: none;
-      max-width: 620px;
-      width: 100%;
-      margin-top: 16px;
+      margin-top: 20px;
       padding: 12px;
-      box-sizing: border-box;
+      max-width: 600px;
       border-radius: 10px;
-      background: #2a2a2a;
+      background: #292929;
       text-align: left;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
@@ -120,193 +79,128 @@
 
 <body>
 
-  <div id="startScreen">
-    <h1>Nette Toilette AR</h1>
-    <p>Tippe auf „AR starten“ und erlaube den Kamerazugriff.</p>
-    <p>Halte danach die AR-Marke vor die Kamera.</p>
-    <button id="startButton">AR starten</button>
-    <div id="error"></div>
-  </div>
+<div id="startScreen">
+  <h1>Nette Toilette AR</h1>
+  <p>Tippe auf „AR starten“ und erlaube Safari den Zugriff auf die Kamera.</p>
+  <p>Richte anschließend die Kamera auf die AR-Marke.</p>
+  <button id="startButton">AR starten</button>
+  <div id="error"></div>
+</div>
 
-  <div id="status">AR wird gestartet…</div>
+<div id="status">AR wird gestartet …</div>
 
-  <a-scene
-    id="scene"
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: yes;"
-    color-space="sRGB"
-    renderer="colorManagement: true; physicallyCorrectLights: true; alpha: true;"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false"
-    embedded>
+<script type="module">
+  import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+  import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+  import { MindARThree } from "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js";
 
-    <a-assets timeout="30000">
-      <a-asset-item id="toiletModel" src="./nettetoilette.glb"></a-asset-item>
-    </a-assets>
-
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-    <a-entity id="target" mindar-image-target="targetIndex: 0">
-      <a-ring
-        position="0 0 0.01"
-        radius-inner="0.46"
-        radius-outer="0.52"
-        material="color: white; opacity: 0.75; transparent: true; side: double">
-      </a-ring>
-
-      <a-ring
-        position="0 0 0.012"
-        radius-inner="0.34"
-        radius-outer="0.37"
-        material="color: white; opacity: 0.35; transparent: true; side: double">
-      </a-ring>
-
-      <a-gltf-model
-        src="#toiletModel"
-        position="0 0 0.05"
-        rotation="90 0 0"
-        scale="0.20 0.20 0.20">
-      </a-gltf-model>
-    </a-entity>
-  </a-scene>
-
-<script>
-(() => {
-  const scene = document.querySelector("#scene");
-  const target = document.querySelector("#target");
   const startScreen = document.querySelector("#startScreen");
   const startButton = document.querySelector("#startButton");
   const status = document.querySelector("#status");
   const errorBox = document.querySelector("#error");
 
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+  const mindarThree = new MindARThree({
+    container: document.body,
+    imageTargetSrc: "./targets.mind"
+  });
 
-  function fixCameraVideo() {
-    const videos = Array.from(document.querySelectorAll("video"));
+  const { renderer, scene, camera } = mindarThree;
+  const anchor = mindarThree.addAnchor(0);
 
-    videos.forEach(video => {
-      video.setAttribute("playsinline", "");
-      video.setAttribute("webkit-playsinline", "");
-      video.muted = true;
+  scene.add(new THREE.AmbientLight(0xffffff, 2.0));
 
-      Object.assign(video.style, {
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100vw",
-        height: "100vh",
-        objectFit: "cover",
-        display: "block",
-        visibility: "visible",
-        opacity: "1",
-        zIndex: "0",
-        background: "#000"
-      });
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+  directionalLight.position.set(1, 2, 3);
+  scene.add(directionalLight);
 
-      if (video.paused) {
-        video.play().catch(() => {});
-      }
-    });
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.46, 0.52, 64),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.75,
+      side: THREE.DoubleSide
+    })
+  );
+  ring.position.set(0, 0, 0.01);
+  anchor.group.add(ring);
 
-    const canvas = document.querySelector(".a-canvas");
-    if (canvas) {
-      canvas.style.background = "transparent";
-      canvas.style.zIndex = "1";
+  const innerRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.34, 0.37, 64),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide
+    })
+  );
+  innerRing.position.set(0, 0, 0.012);
+  anchor.group.add(innerRing);
+
+  const loader = new GLTFLoader();
+
+  loader.load(
+    "./nettetoilette.glb",
+    (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(0.20, 0.20, 0.20);
+      model.position.set(0, 0, 0.05);
+      model.rotation.x = Math.PI / 2;
+      anchor.group.add(model);
+      console.log("GLB erfolgreich geladen");
+    },
+    undefined,
+    (error) => {
+      console.error("Fehler beim Laden des GLB:", error);
     }
+  );
 
-    return videos;
-  }
+  anchor.onTargetFound = () => {
+    status.style.display = "block";
+    status.textContent = "AR-Marke erkannt";
+    setTimeout(() => {
+      status.style.display = "none";
+    }, 1200);
+  };
 
-  async function waitForScene() {
-    if (scene.hasLoaded) return;
-    await new Promise(resolve => {
-      scene.addEventListener("loaded", resolve, {once: true});
-    });
-  }
-
-  async function getMindAR() {
-    for (let i = 0; i < 100; i++) {
-      const system = scene.systems && scene.systems["mindar-image-system"];
-      if (system && typeof system.start === "function") return system;
-      await sleep(100);
-    }
-    throw new Error("MindAR-System wurde nicht gefunden.");
-  }
-
-  async function inspectVideo() {
-    for (let i = 0; i < 40; i++) {
-      const videos = fixCameraVideo();
-      const cameraVideo = videos.find(v => v.srcObject);
-
-      if (cameraVideo) {
-        const tracks = cameraVideo.srcObject.getVideoTracks();
-        const track = tracks[0];
-
-        status.textContent = "Kamera aktiv – suche AR-Marke…";
-
-        try {
-          await cameraVideo.play();
-        } catch (_) {}
-
-        return;
-      }
-      await sleep(250);
-    }
-
-    status.textContent = "Kamera freigegeben, aber kein Videobild gefunden.";
-  }
+  anchor.onTargetLost = () => {
+    status.style.display = "block";
+    status.textContent = "Suche AR-Marke …";
+  };
 
   startButton.addEventListener("click", async () => {
     startButton.disabled = true;
-    startButton.textContent = "AR wird gestartet…";
+    startButton.textContent = "AR wird gestartet …";
     errorBox.style.display = "none";
     status.style.display = "block";
-    status.textContent = "AR wird gestartet…";
+    status.textContent = "Kamera wird gestartet …";
 
     try {
-      await waitForScene();
-      const mindar = await getMindAR();
-
-      await mindar.start();
+      await mindarThree.start();
 
       startScreen.style.display = "none";
+      status.textContent = "Kamera aktiv – suche AR-Marke …";
 
-      // Mehrfach korrigieren, weil MindAR das Video erst nach dem Start einfügt.
-      fixCameraVideo();
-      setTimeout(fixCameraVideo, 250);
-      setTimeout(fixCameraVideo, 750);
-      setTimeout(fixCameraVideo, 1500);
+      renderer.setAnimationLoop(() => {
+        renderer.render(scene, camera);
+      });
 
-      await inspectVideo();
+    } catch (error) {
+      console.error(error);
 
-    } catch (err) {
+      startScreen.style.display = "flex";
       startButton.disabled = false;
       startButton.textContent = "Nochmal versuchen";
       status.style.display = "none";
-      startScreen.style.display = "flex";
       errorBox.style.display = "block";
+
       errorBox.textContent =
         "AR konnte nicht gestartet werden.\n\n" +
-        "Name: " + (err.name || "Unbekannt") + "\n" +
-        "Meldung: " + (err.message || String(err));
+        "Name: " + (error.name || "Unbekannt") +
+        "\n\nMeldung: " + (error.message || String(error));
     }
   });
-
-  target.addEventListener("targetFound", () => {
-    status.textContent = "AR-Marke erkannt.";
-    setTimeout(() => status.style.display = "none", 1200);
-  });
-
-  target.addEventListener("targetLost", () => {
-    status.style.display = "block";
-    status.textContent = "Kamera aktiv – suche AR-Marke…";
-  });
-
-  // Falls MindAR später ein Video in den DOM einfügt, sofort korrigieren.
-  const observer = new MutationObserver(() => fixCameraVideo());
-  observer.observe(document.body, {childList: true, subtree: true});
-})();
 </script>
+
 </body>
 </html>
