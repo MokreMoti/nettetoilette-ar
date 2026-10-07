@@ -7,17 +7,15 @@
 <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.7/aframe/build/aframe-ar.min.js"></script>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
-#arjs-video,video,.a-canvas,canvas{
- position:fixed!important;
- margin:0!important;
-}
+html,body{margin:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:transparent!important}
 #arjs-video,video{
- display:block!important;visibility:visible!important;opacity:1!important;
- z-index:0!important;background:#000!important;
+ position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;
+ object-fit:cover!important;display:block!important;visibility:visible!important;opacity:1!important;
+ z-index:0!important;background:transparent!important
 }
 a-scene,.a-canvas,canvas{
- z-index:1!important;background:transparent!important;
+ position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;
+ z-index:1!important;background:transparent!important
 }
 </style>
 </head>
@@ -31,76 +29,33 @@ a-scene,.a-canvas,canvas{
  </a-marker>
  <a-entity camera></a-entity>
 </a-scene>
-
 <script>
 const scene=document.querySelector('a-scene');
 
-function transparent(){
- if(!scene.renderer)return;
- scene.renderer.setClearColor(0x000000,0);
- scene.renderer.setClearAlpha(0);
- scene.renderer.domElement.style.background='transparent';
-}
-
-function fitWithoutDistortion(){
+function fix(){
  const v=document.querySelector('#arjs-video')||document.querySelector('video');
- const c=scene.canvas||document.querySelector('canvas');
- if(!v||!c||!scene.renderer)return;
-
- v.setAttribute('playsinline','');
- v.setAttribute('webkit-playsinline','');
-
- // Use the REAL camera aspect ratio. Never stretch X and Y independently.
- const vw=v.videoWidth||640, vh=v.videoHeight||480;
- const cameraAspect=vw/vh;
- const sw=window.innerWidth, sh=window.innerHeight;
- const screenAspect=sw/sh;
-
- let w,h,left,top;
- if(screenAspect>cameraAspect){
-   h=sh; w=h*cameraAspect;
-   left=(sw-w)/2; top=0;
- }else{
-   w=sw; h=w/cameraAspect;
-   left=0; top=(sh-h)/2;
- }
-
- for(const el of [v,c]){
-   Object.assign(el.style,{
-     left:left+'px',top:top+'px',
-     width:w+'px',height:h+'px'
+ if(v){
+   v.setAttribute('playsinline','');
+   v.setAttribute('webkit-playsinline','');
+   Object.assign(v.style,{
+     position:'fixed',top:'0',left:'0',width:'100vw',height:'100vh',
+     objectFit:'cover',display:'block',visibility:'visible',opacity:'1',zIndex:'0'
    });
  }
- v.style.objectFit='fill'; // safe: box itself has the camera's exact aspect ratio
- v.style.zIndex='0';
- c.style.zIndex='1';
-
- // Renderer gets the same aspect ratio as the real camera.
- const dpr=Math.min(window.devicePixelRatio||1,2);
- scene.renderer.setPixelRatio(dpr);
- scene.renderer.setSize(w,h,false);
-
- // IMPORTANT: do NOT overwrite AR.js' calibrated projection matrix.
- transparent();
+ if(scene && scene.renderer){
+   scene.renderer.setClearColor(0x000000,0);
+   scene.renderer.setClearAlpha(0);
+   if(scene.renderer.domElement){
+     scene.renderer.domElement.style.background='transparent';
+     scene.renderer.domElement.style.zIndex='1';
+   }
+ }
 }
-
-function refresh(){
- transparent();
- fitWithoutDistortion();
-}
-
 scene.addEventListener('renderstart',()=>{
- refresh();
- [100,300,700,1500,3000].forEach(ms=>setTimeout(refresh,ms));
+ fix();
+ [100,300,700,1500,3000].forEach(ms=>setTimeout(fix,ms));
 });
-
-document.addEventListener('loadedmetadata',refresh,true);
-window.addEventListener('resize',()=>setTimeout(refresh,100));
-window.addEventListener('orientationchange',()=>{
- setTimeout(refresh,150);
- setTimeout(refresh,500);
-});
-setInterval(refresh,750);
+setInterval(fix,750);
 </script>
 </body>
 </html>
